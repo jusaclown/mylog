@@ -117,9 +117,6 @@ bool thread_pool::process_next_msg_()
 
     return true;
 }
-
-
-
     
 } // namespace details
 } // namespace mylog
