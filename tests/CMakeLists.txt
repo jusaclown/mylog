@@ -10,6 +10,7 @@ set(MYLOG_UTESTS_SOURCES
     test_file_logging.cc
     test_daily_logger.cc
     test_mpmc_q.cc
+    test_async.cc
     )
 
 add_executable(mylog-utests ${MYLOG_UTESTS_SOURCES})
