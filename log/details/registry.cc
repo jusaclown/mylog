@@ -11,7 +11,7 @@ registry::registry()
 {
     auto color_sink = std::make_shared<sinks::stdout_color_sink_mt>();
     
-    const char* default_logger_name = "";
+    const char* default_logger_name = "default_logger";
     default_logger_ = std::make_shared<logger>(default_logger_name, std::move(color_sink));
     loggers_[default_logger_name] = default_logger_;
 }

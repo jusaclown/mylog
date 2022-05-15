@@ -32,7 +32,14 @@ int main()
     mylog::debug("This message should not be displayed!");
     mylog::set_level(mylog::level::trace); // Set specific logger's log level
     mylog::debug("This message should be displayed..");
-    mylog::set_level(mylog::level::info); 
+
+    // Customize msg format for all loggers
+    mylog::set_pattern("%^[%Y-%m-%d %H:%M:%S.%F] [%n] [%l] [thread %t] [%s:%L %@] %v%$");
+    mylog::info("This an info message with custom format");
+    mylog::default_logger()->warning("This an info message with custom format and logger name");
+    MYLOG_FATAL("This an fatal message with custom format and source");
+    mylog::set_pattern("%+"); // back to default format
+    mylog::set_level(mylog::level::info);
     
     try
     {

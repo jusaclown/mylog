@@ -92,13 +92,98 @@ private:
     memory_buf_t cached_buf_;
 };
 
-// 日志消息 %m
-class message_formatter : public flag_formatter
+
+class year_formatter : public flag_formatter
 {
 public:
     void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
     {
-        details::append_string_view(msg.payload, dest);
+        details::append_int(tm_time.tm_year + 1900, dest);
+    }
+};
+
+class month_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::pad2(tm_time.tm_mon + 1, dest);
+    }
+};
+
+class day_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::pad2(tm_time.tm_mday, dest);
+    }
+};
+
+class hour_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::pad2(tm_time.tm_hour, dest);
+    }
+};
+
+class minute_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::pad2(tm_time.tm_min, dest);
+    }
+};
+
+class second_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::pad2(tm_time.tm_sec, dest);
+    }
+};
+
+class millisecond_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        auto millis = details::time_fraction<std::chrono::milliseconds>(msg.time);
+        details::pad3(static_cast<uint32_t>(millis.count()), dest);
+    }
+};
+
+class microsecond_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        auto us = details::time_fraction<std::chrono::microseconds>(msg.time);
+        details::pad3(static_cast<size_t>(us.count()), dest);
+    }
+};
+
+class nanosecond_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        auto ns = details::time_fraction<std::chrono::nanoseconds>(msg.time);
+        details::pad3(static_cast<size_t>(ns.count()), dest);
+    }
+};
+
+// 日志器名称 %n
+class logger_name_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::append_string_view(msg.logger_name, dest);
     }
 };
 
@@ -109,6 +194,72 @@ public:
     void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
     {
         details::append_string_view(level::to_string_view(msg.level), dest);
+    }
+};
+
+// 线程id %t
+class thread_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::append_int(msg.thread_id, dest);
+    }
+};
+
+// 文件全名 %g
+class source_filename_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        if (msg.source.empty())
+        {
+            return;
+        }
+        details::append_string_view(msg.source.filename, dest);
+    }
+};
+
+// 仅文件名 %s
+class short_filename_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        if (msg.source.empty())
+        {
+            return;
+        }
+        details::append_string_view(details::os::basename(msg.source.filename), dest);
+    }
+};
+
+// 行号 %L
+class source_linenum_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        if (msg.source.empty())
+        {
+            return;
+        }
+        details::append_int(msg.source.line, dest);
+    }
+};
+
+// 函数名 %@
+class source_funcname_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        if (msg.source.empty())
+        {
+            return;
+        }
+        details::append_string_view(msg.source.funname, dest);
     }
 };
 
@@ -129,6 +280,16 @@ public:
     void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
     {
         msg.color_range_end = dest.size();
+    }
+};
+
+// 日志消息 %v
+class message_formatter : public flag_formatter
+{
+public:
+    void format(const details::log_msg& msg, const std::tm& tm_time, memory_buf_t& dest) override
+    {
+        details::append_string_view(msg.payload, dest);
     }
 };
 
@@ -224,13 +385,69 @@ void pattern_formatter::handle_flag_(const char ch)
     case '+':   // default formatter
         formatters_.emplace_back(std::make_unique<full_formatter>());
         break;
-    
-    case 'v':   // level
-        formatters_.emplace_back(std::make_unique<message_formatter>());
+
+    case 'Y':   // year
+        formatters_.emplace_back(std::make_unique<year_formatter>());
+        break;
+        
+    case 'm':   // month 1-12
+        formatters_.emplace_back(std::make_unique<month_formatter>());
+        break;
+        
+    case 'd':   // day of month 1-31
+        formatters_.emplace_back(std::make_unique<day_formatter>());
+        break;
+        
+    case 'H':   // hour 24
+        formatters_.emplace_back(std::make_unique<hour_formatter>());
+        break;
+        
+    case 'M':   // minute
+        formatters_.emplace_back(std::make_unique<minute_formatter>());
+        break;
+        
+    case 'S':   // second
+        formatters_.emplace_back(std::make_unique<second_formatter>());
+        break;
+        
+    case 'e':   // millisecond
+        formatters_.emplace_back(std::make_unique<millisecond_formatter>());
+        break;
+        
+    case 'f':   // microsecond
+        formatters_.emplace_back(std::make_unique<microsecond_formatter>());
+        break;
+        
+    case 'F':   // nanosecond
+        formatters_.emplace_back(std::make_unique<nanosecond_formatter>());
+        break;
+        
+    case 'n':   // logger name
+        formatters_.emplace_back(std::make_unique<logger_name_formatter>());
+        break;
+        
+    case 'l':   // level
+        formatters_.emplace_back(std::make_unique<level_formatter>());
         break;
 
-    case 'l':   // the message text
-        formatters_.emplace_back(std::make_unique<level_formatter>());
+    case 't':   // thread id
+        formatters_.emplace_back(std::make_unique<thread_formatter>());
+        break;
+        
+    case 'g':   // full source filename
+        formatters_.emplace_back(std::make_unique<source_filename_formatter>());
+        break;
+        
+    case 's':   // short source filename - without directory name
+        formatters_.emplace_back(std::make_unique<short_filename_formatter>());
+        break;
+
+    case 'L':   // source line number
+        formatters_.emplace_back(std::make_unique<source_linenum_formatter>());
+        break;
+
+    case '@':   // source funcname
+        formatters_.emplace_back(std::make_unique<source_funcname_formatter>());
         break;
 
     case '^':   // color range start
@@ -239,6 +456,10 @@ void pattern_formatter::handle_flag_(const char ch)
         
     case '$':   // color range end
         formatters_.emplace_back(std::make_unique<color_end_formatter>());
+        break;
+        
+    case 'v':   // the message text
+        formatters_.emplace_back(std::make_unique<message_formatter>());
         break;
         
     case '%':

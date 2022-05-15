@@ -98,7 +98,5 @@ inline ToDuration time_fraction(log_clock::time_point tp)
     return duration_cast<ToDuration>(duration) - duration_cast<ToDuration>(secs);
 }
 
-
-
 } // namespace details
 } // namespace mylog
