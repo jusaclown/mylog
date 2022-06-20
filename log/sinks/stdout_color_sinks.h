@@ -198,3 +198,11 @@ inline std::shared_ptr<logger> stderr_color_logger_mt(std::string logger_name)
 }
 
 } // namespace mylog
+
+/**
+ * 为什么不直接继承stdout_sink_base?
+ * 模板类继承的时候子类看不见父类成员，必须显示指出
+ * 原先：std::lock_guard<mutex_t> lock(mutex_);
+ * 继承：std::lock_guard<typename stdout_sink_base<ConsoleMutex>::mutex_t> lock(stdout_sink_base<ConsoleMutex>::mutex_);
+ * https://www.zhihu.com/question/28139230
+ */
